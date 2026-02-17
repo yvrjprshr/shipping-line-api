@@ -11,6 +11,8 @@ import com.shipping.freightops.repository.VoyageRepository;
 import jakarta.validation.Valid;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +24,8 @@ public class VoyageService {
 
   private Voyage mapCreateVoyageRequestToVoyage(CreateVoyageRequest voyageRequest) {
     Voyage voyage = new Voyage();
+    if (Objects.equals(voyageRequest.getDeparturePortId(), voyageRequest.getArrivalPortId()))
+      throw new IllegalArgumentException("arrival portId must be different from departure port");
     // check for vessel,port ids in voyage payload;
     Vessel vessel =
         vesselRepository
