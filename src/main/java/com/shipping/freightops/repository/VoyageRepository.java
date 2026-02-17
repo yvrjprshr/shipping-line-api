@@ -9,6 +9,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface VoyageRepository extends JpaRepository<Voyage, Long> {
 
   Optional<Voyage> findByVoyageNumber(String voyageNumber);
-  List<Voyage> findAllByStatus(VoyageStatus status);
 
+  List<Voyage> findAllByStatus(VoyageStatus status);
 }
