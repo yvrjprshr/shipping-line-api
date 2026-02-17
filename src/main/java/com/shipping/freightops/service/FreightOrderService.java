@@ -23,12 +23,11 @@ public class FreightOrderService {
   private final ContainerRepository containerRepository;
   private final CustomerRepository customerRepository;
 
-
   public FreightOrderService(
-          FreightOrderRepository orderRepository,
-          VoyageRepository voyageRepository,
-          ContainerRepository containerRepository,
-          CustomerRepository customerRepository) {
+      FreightOrderRepository orderRepository,
+      VoyageRepository voyageRepository,
+      ContainerRepository containerRepository,
+      CustomerRepository customerRepository) {
     this.orderRepository = orderRepository;
     this.voyageRepository = voyageRepository;
     this.containerRepository = containerRepository;
@@ -56,13 +55,11 @@ public class FreightOrderService {
                         "Container not found: " + request.getContainerId()));
 
     Customer customer =
-            customerRepository
-                .findById(request.getCustomerId())
-                .orElseThrow(
-                    () ->
-                            new IllegalArgumentException(
-                                    "Customer not found: " + request.getCustomerId()));
-
+        customerRepository
+            .findById(request.getCustomerId())
+            .orElseThrow(
+                () ->
+                    new IllegalArgumentException("Customer not found: " + request.getCustomerId()));
 
     FreightOrder order = new FreightOrder();
     order.setVoyage(voyage);
