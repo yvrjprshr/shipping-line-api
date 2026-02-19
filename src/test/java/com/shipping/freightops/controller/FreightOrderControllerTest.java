@@ -43,11 +43,13 @@ class FreightOrderControllerTest {
   @Autowired private PortRepository portRepository;
   @Autowired private VesselRepository vesselRepository;
   @Autowired private ContainerRepository containerRepository;
+  @Autowired private CustomerRepository customerRepository;
   @Autowired private VoyageRepository voyageRepository;
   @Autowired private FreightOrderRepository freightOrderRepository;
 
   private Voyage savedVoyage;
   private Container savedContainer;
+  private Customer savedCustomer;
 
   @BeforeEach
   void setUp() {
@@ -55,6 +57,7 @@ class FreightOrderControllerTest {
     freightOrderRepository.deleteAll();
     voyageRepository.deleteAll();
     containerRepository.deleteAll();
+    customerRepository.deleteAll();
     vesselRepository.deleteAll();
     portRepository.deleteAll();
 
@@ -74,6 +77,12 @@ class FreightOrderControllerTest {
     savedContainer =
         containerRepository.save(
             new Container("TSTU1234567", ContainerSize.TWENTY_FOOT, ContainerType.DRY));
+
+    Customer customer = new Customer();
+    customer.setCompanyName("Test Customer Inc.");
+    customer.setContactName("John Doe");
+    customer.setEmail("John@testCust.com");
+    savedCustomer = customerRepository.save(customer);
   }
 
   @Test
@@ -82,6 +91,7 @@ class FreightOrderControllerTest {
     CreateFreightOrderRequest request = new CreateFreightOrderRequest();
     request.setVoyageId(savedVoyage.getId());
     request.setContainerId(savedContainer.getId());
+    request.setCustomerId(savedCustomer.getId());
     request.setOrderedBy("ops-team");
     request.setNotes("Urgent delivery");
 
@@ -93,6 +103,8 @@ class FreightOrderControllerTest {
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.voyageNumber").value("VOY-001"))
         .andExpect(jsonPath("$.containerCode").value("TSTU1234567"))
+        .andExpect(jsonPath("$.customerName").value("Test Customer Inc."))
+        .andExpect(jsonPath("$.customerEmail").value("John@testCust.com"))
         .andExpect(jsonPath("$.orderedBy").value("ops-team"))
         .andExpect(jsonPath("$.status").value("PENDING"));
   }
