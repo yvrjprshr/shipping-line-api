@@ -57,9 +57,12 @@ public class FreightOrder extends BaseEntity {
   private BigDecimal discountPercent = BigDecimal.ZERO;
 
   @NotNull
-  @Positive
+  @DecimalMin(value = "0.0", inclusive = true)
   @Column(nullable = false, precision = 10, scale = 2)
   private BigDecimal finalPrice;
+
+  @Column(nullable = true, length = 500)
+  private String discountReason;
 
   public Customer getCustomer() {
     return customer;
@@ -133,5 +136,13 @@ public class FreightOrder extends BaseEntity {
 
   public void setFinalPrice(BigDecimal finalPrice) {
     this.finalPrice = finalPrice;
+  }
+
+  public String getDiscountReason() {
+    return discountReason;
+  }
+
+  public void setDiscountReason(String discountReason) {
+    this.discountReason = discountReason;
   }
 }
