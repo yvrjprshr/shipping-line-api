@@ -75,7 +75,7 @@ public class FreightOrderService {
     BigDecimal basePriceUsd = voyagePrice.getBasePriceUsd();
     BigDecimal discountPercentage =
         request.getDiscountPercent() != null ? request.getDiscountPercent() : BigDecimal.ZERO;
-    BigDecimal finalPriceUsd = calculateFinalPrice(basePriceUsd, request.getDiscountPercent());
+    BigDecimal finalPriceUsd = calculateFinalPrice(basePriceUsd, discountPercentage);
 
     FreightOrder order = new FreightOrder();
     order.setVoyage(voyage);
@@ -118,7 +118,10 @@ public class FreightOrderService {
       throw new IllegalStateException(
           "New discount cannot be applied on the cancelled or delivered freight order");
 
-    order.setDiscountPercent(request.getDiscountPercent());
+    BigDecimal discountPercentage =
+        request.getDiscountPercent() != null ? request.getDiscountPercent() : BigDecimal.ZERO;
+
+    order.setDiscountPercent(discountPercentage);
     order.setDiscountReason(request.getReason());
     order.setFinalPrice(calculateFinalPrice(order.getBasePriceUsd(), order.getDiscountPercent()));
     return orderRepository.save(order);

@@ -1,12 +1,12 @@
 package com.shipping.freightops.controller;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.shipping.freightops.dto.CreateFreightOrderRequest;
+import com.shipping.freightops.dto.UpdateDiscountRequest;
 import com.shipping.freightops.entity.*;
 import com.shipping.freightops.enums.ContainerSize;
 import com.shipping.freightops.enums.ContainerType;
@@ -235,5 +235,31 @@ class FreightOrderControllerTest {
         .andExpect(jsonPath("$.size").value(100))
         .andExpect(jsonPath("$.totalElements").value(totalOrders))
         .andExpect(jsonPath("$.totalPages").value(1));
+  }
+
+  @Test
+  @DisplayName("PATCH /api/v1/freight-orders/{id}/discount → 200 OK")
+  void updateDiscount_returnsUpdatedOrder() throws Exception {
+    CreateFreightOrderRequest request = new CreateFreightOrderRequest();
+    request.setVoyageId(savedVoyage.getId());
+    request.setContainerId(savedContainer.getId());
+    request.setCustomerId(savedCustomer.getId());
+    request.setOrderedBy("ops-team");
+    request.setNotes("Urgent delivery");
+    FreightOrder order = freightOrderService.createOrder(request);
+
+    UpdateDiscountRequest updateDiscountRequest = new UpdateDiscountRequest();
+    updateDiscountRequest.setDiscountPercent(BigDecimal.valueOf(10));
+    updateDiscountRequest.setReason("Loyal customer");
+
+    mockMvc
+        .perform(
+            patch("/api/v1/freight-orders/{id}/discount", order.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(updateDiscountRequest)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.discountPercent").value(10))
+        .andExpect(jsonPath("$.discountReason").value("Loyal customer"))
+        .andExpect(jsonPath("$.finalPrice").value(900.00));
   }
 }
