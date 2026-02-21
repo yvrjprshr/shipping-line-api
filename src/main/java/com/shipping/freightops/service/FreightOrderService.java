@@ -1,15 +1,12 @@
 package com.shipping.freightops.service;
 
 import com.shipping.freightops.dto.CreateFreightOrderRequest;
-import com.shipping.freightops.entity.Container;
-import com.shipping.freightops.entity.Customer;
-import com.shipping.freightops.entity.FreightOrder;
-import com.shipping.freightops.entity.Voyage;
+import com.shipping.freightops.entity.*;
+import com.shipping.freightops.enums.ContainerSize;
 import com.shipping.freightops.enums.VoyageStatus;
-import com.shipping.freightops.repository.ContainerRepository;
-import com.shipping.freightops.repository.CustomerRepository;
-import com.shipping.freightops.repository.FreightOrderRepository;
-import com.shipping.freightops.repository.VoyageRepository;
+import com.shipping.freightops.exception.BadRequestException;
+import com.shipping.freightops.repository.*;
+import java.math.BigDecimal;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -23,16 +20,19 @@ public class FreightOrderService {
   private final VoyageRepository voyageRepository;
   private final ContainerRepository containerRepository;
   private final CustomerRepository customerRepository;
+  private final VoyagePriceRepository voyagePriceRepository;
 
   public FreightOrderService(
       FreightOrderRepository orderRepository,
       VoyageRepository voyageRepository,
       ContainerRepository containerRepository,
-      CustomerRepository customerRepository) {
+      CustomerRepository customerRepository,
+      VoyagePriceRepository voyagePriceRepository) {
     this.orderRepository = orderRepository;
     this.voyageRepository = voyageRepository;
     this.containerRepository = containerRepository;
     this.customerRepository = customerRepository;
+    this.voyagePriceRepository = voyagePriceRepository;
   }
 
   @Transactional
@@ -62,12 +62,29 @@ public class FreightOrderService {
                 () ->
                     new IllegalArgumentException("Customer not found: " + request.getCustomerId()));
 
+    ContainerSize containerSize = container.getSize();
+    VoyagePrice voyagePrice =
+        voyagePriceRepository
+            .findByVoyageAndContainerSize(voyage, containerSize)
+            .orElseThrow(
+                () -> new BadRequestException("No price defined for voyage and container size"));
+
+    BigDecimal basePriceUsd = voyagePrice.getBasePriceUsd();
+    BigDecimal discountPercentage =
+        request.getDiscountPercent() != null ? request.getDiscountPercent() : BigDecimal.ZERO;
+    BigDecimal finalPriceUsd =
+        basePriceUsd.multiply(
+            (BigDecimal.ONE.subtract(discountPercentage.divide(BigDecimal.valueOf(100)))));
+
     FreightOrder order = new FreightOrder();
     order.setVoyage(voyage);
     order.setContainer(container);
     order.setCustomer(customer);
     order.setOrderedBy(request.getOrderedBy());
     order.setNotes(request.getNotes());
+    order.setBasePriceUsd(basePriceUsd);
+    order.setDiscountPercent(discountPercentage);
+    order.setFinalPrice(finalPriceUsd);
 
     return orderRepository.save(order);
   }

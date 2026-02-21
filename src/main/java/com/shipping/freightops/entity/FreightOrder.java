@@ -9,8 +9,8 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.*;
+import java.math.BigDecimal;
 
 /** A freight booking made by the internal ops team, assigning a container to a voyage. */
 @Entity
@@ -44,6 +44,22 @@ public class FreightOrder extends BaseEntity {
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
   private OrderStatus status = OrderStatus.PENDING;
+
+  @NotNull
+  @Positive
+  @Column(nullable = false, precision = 10, scale = 2)
+  private BigDecimal basePriceUsd;
+
+  @NotNull
+  @DecimalMin(value = "0", inclusive = true)
+  @DecimalMax(value = "100", inclusive = true)
+  @Column(nullable = false, precision = 5, scale = 2)
+  private BigDecimal discountPercent = BigDecimal.ZERO;
+
+  @NotNull
+  @Positive
+  @Column(nullable = false, precision = 10, scale = 2)
+  private BigDecimal finalPrice;
 
   public Customer getCustomer() {
     return customer;
@@ -93,5 +109,29 @@ public class FreightOrder extends BaseEntity {
 
   public void setStatus(OrderStatus status) {
     this.status = status;
+  }
+
+  public BigDecimal getBasePriceUsd() {
+    return basePriceUsd;
+  }
+
+  public void setBasePriceUsd(BigDecimal basePriceUsd) {
+    this.basePriceUsd = basePriceUsd;
+  }
+
+  public BigDecimal getDiscountPercent() {
+    return discountPercent;
+  }
+
+  public void setDiscountPercent(BigDecimal discountPercent) {
+    this.discountPercent = discountPercent;
+  }
+
+  public BigDecimal getFinalPrice() {
+    return finalPrice;
+  }
+
+  public void setFinalPrice(BigDecimal finalPrice) {
+    this.finalPrice = finalPrice;
   }
 }

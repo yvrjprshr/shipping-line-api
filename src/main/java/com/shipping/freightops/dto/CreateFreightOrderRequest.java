@@ -1,7 +1,10 @@
 package com.shipping.freightops.dto;
 
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.math.BigDecimal;
 
 /** Payload for creating a new freight order. */
 public class CreateFreightOrderRequest {
@@ -19,6 +22,10 @@ public class CreateFreightOrderRequest {
   private String orderedBy;
 
   private String notes;
+
+  @DecimalMax(value = "100", inclusive = true)
+  @DecimalMin(value = "0", inclusive = true)
+  private BigDecimal discountPercent;
 
   public Long getVoyageId() {
     return voyageId;
@@ -58,5 +65,13 @@ public class CreateFreightOrderRequest {
 
   public void setNotes(String notes) {
     this.notes = notes;
+  }
+
+  public BigDecimal getDiscountPercent() {
+    return discountPercent;
+  }
+
+  public void setDiscountPercent(BigDecimal discountPercent) {
+    this.discountPercent = discountPercent;
   }
 }

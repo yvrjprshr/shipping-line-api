@@ -1,17 +1,23 @@
 package com.shipping.freightops.service;
 
 import com.shipping.freightops.dto.CreateVoyageRequest;
+import com.shipping.freightops.dto.VoyagePriceRequest;
 import com.shipping.freightops.entity.Port;
 import com.shipping.freightops.entity.Vessel;
 import com.shipping.freightops.entity.Voyage;
+import com.shipping.freightops.entity.VoyagePrice;
 import com.shipping.freightops.enums.VoyageStatus;
 import com.shipping.freightops.repository.PortRepository;
 import com.shipping.freightops.repository.VesselRepository;
+import com.shipping.freightops.repository.VoyagePriceRepository;
 import com.shipping.freightops.repository.VoyageRepository;
 import jakarta.validation.Valid;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +26,7 @@ public class VoyageService {
   private final VoyageRepository voyageRepository;
   private final VesselRepository vesselRepository;
   private final PortRepository portRepository;
+  private final VoyagePriceRepository voyagePriceRepository;
 
   private Voyage mapCreateVoyageRequestToVoyage(CreateVoyageRequest voyageRequest) {
     Voyage voyage = new Voyage();
@@ -56,10 +63,12 @@ public class VoyageService {
   public VoyageService(
       VoyageRepository voyageRepository,
       VesselRepository vesselRepository,
-      PortRepository portRepository) {
+      PortRepository portRepository,
+      VoyagePriceRepository voyagePriceRepository) {
     this.voyageRepository = voyageRepository;
     this.vesselRepository = vesselRepository;
     this.portRepository = portRepository;
+    this.voyagePriceRepository = voyagePriceRepository;
   }
 
   public List<Voyage> getAll() {
@@ -95,5 +104,35 @@ public class VoyageService {
     boolean exists = voyageRepository.existsById(voyageId);
     if (!exists) throw new IllegalArgumentException("Voyage not found");
     voyageRepository.deleteById(voyageId);
+  }
+
+  @Transactional
+  public VoyagePrice createVoyagePrice(
+      Long voyageId, @Valid VoyagePriceRequest voyagePriceRequest) {
+    Voyage voyage =
+        voyageRepository
+            .findById(voyageId)
+            .orElseThrow(() -> new IllegalArgumentException("Voyage not found"));
+    Optional<VoyagePrice> existingCombi =
+        voyagePriceRepository.findByVoyageAndContainerSize(
+            voyage, voyagePriceRequest.getContainerSize());
+    if (existingCombi.isPresent())
+      throw new IllegalStateException(
+          "Price already exists for this container size on this voyage");
+
+    VoyagePrice voyagePrice = new VoyagePrice();
+    voyagePrice.setVoyage(voyage);
+    voyagePrice.setContainerSize(voyagePriceRequest.getContainerSize());
+    voyagePrice.setBasePriceUsd(voyagePriceRequest.getBasePriceUsd());
+
+    return voyagePriceRepository.save(voyagePrice);
+  }
+
+  @Transactional(readOnly = true)
+  public Page<VoyagePrice> getAllPricesByVoyageId(Long voyageId, Pageable pageable) {
+    if (!voyageRepository.existsById(voyageId)) {
+      throw new IllegalArgumentException("Voyage not found");
+    }
+    return voyagePriceRepository.findByVoyageId(voyageId, pageable);
   }
 }
