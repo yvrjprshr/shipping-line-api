@@ -104,6 +104,8 @@ public class FreightOrderService {
 
   @Transactional(readOnly = true)
   public Page<FreightOrder> getOrdersByVoyage(Long voyageId, Pageable pageable) {
+    voyageRepository.findById(voyageId)
+            .orElseThrow(() -> new IllegalArgumentException("Voyage not found"));
     return orderRepository.findByVoyageId(voyageId, pageable);
   }
 
