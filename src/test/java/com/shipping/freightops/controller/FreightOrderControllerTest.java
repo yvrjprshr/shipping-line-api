@@ -127,6 +127,46 @@ class FreightOrderControllerTest {
   }
 
   @Test
+  @DisplayName("POST /api/v1/freight-orders with non-existent agentId → 404")
+  void createOrder_withNonExistentAgent_returnsNotFound() throws Exception {
+    CreateFreightOrderRequest request = new CreateFreightOrderRequest();
+    request.setVoyageId(savedVoyage.getId());
+    request.setContainerId(savedContainer.getId());
+    request.setAgentId(9999L);
+
+    mockMvc
+        .perform(
+            post("/api/v1/freight-orders")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
+  @DisplayName("POST /api/v1/freight-orders with inactive agent → 409 Conflict")
+  void createOrder_withInactiveAgent_returnsConflict() throws Exception {
+    Agent inactiveAgent = new Agent();
+    inactiveAgent.setName("Inactive Agent");
+    inactiveAgent.setEmail("inactive@agent.com");
+    inactiveAgent.setCommissionPercent(new BigDecimal("3.00"));
+    inactiveAgent.setType(AgentType.EXTERNAL);
+    inactiveAgent.setActive(false);
+    inactiveAgent = agentRepository.save(inactiveAgent);
+
+    CreateFreightOrderRequest request = new CreateFreightOrderRequest();
+    request.setVoyageId(savedVoyage.getId());
+    request.setContainerId(savedContainer.getId());
+    request.setAgentId(inactiveAgent.getId());
+
+    mockMvc
+        .perform(
+            post("/api/v1/freight-orders")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isConflict());
+  }
+
+  @Test
   @DisplayName("GET /api/v1/freight-orders → 200 OK with list")
   void listOrders_returnsOk() throws Exception {
     mockMvc
