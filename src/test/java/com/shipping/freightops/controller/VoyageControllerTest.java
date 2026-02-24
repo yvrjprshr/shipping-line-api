@@ -8,15 +8,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.shipping.freightops.dto.CreateVoyageRequest;
 import com.shipping.freightops.dto.VoyagePriceRequest;
-import com.shipping.freightops.entity.Port;
-import com.shipping.freightops.entity.Vessel;
-import com.shipping.freightops.entity.Voyage;
-import com.shipping.freightops.entity.VoyagePrice;
+import com.shipping.freightops.entity.*;
 import com.shipping.freightops.enums.ContainerSize;
-import com.shipping.freightops.repository.PortRepository;
-import com.shipping.freightops.repository.VesselRepository;
-import com.shipping.freightops.repository.VoyagePriceRepository;
-import com.shipping.freightops.repository.VoyageRepository;
+import com.shipping.freightops.enums.ContainerType;
+import com.shipping.freightops.repository.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import org.hamcrest.CoreMatchers;
@@ -39,6 +34,9 @@ public class VoyageControllerTest {
   @Autowired private MockMvc mockMvc;
   @Autowired private VesselRepository vesselRepository;
   @Autowired private VoyagePriceRepository voyagePriceRepository;
+  @Autowired private ContainerRepository containerRepository;
+  @Autowired private FreightOrderRepository freightOrderRepository;
+  @Autowired private CustomerRepository customerRepository;
 
   private Vessel vessel;
   private Port arrivalPort;
@@ -48,8 +46,11 @@ public class VoyageControllerTest {
 
   @BeforeEach
   void setUp() {
+    freightOrderRepository.deleteAll();
     voyagePriceRepository.deleteAll();
     voyageRepository.deleteAll();
+    containerRepository.deleteAll();
+    customerRepository.deleteAll();
     vesselRepository.deleteAll();
     portRepository.deleteAll();
     Port port = new Port("TGKRY", "kalgary", "Togo");
@@ -292,6 +293,66 @@ public class VoyageControllerTest {
 
     mockMvc
         .perform(get("/api/v1/voyages/{id}/prices", 99999L).param("page", "0").param("size", "20"))
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
+  @DisplayName("GET /api/v1/voyages/{voyageId}/containers → 200 OK with containers")
+  void getContainersByVoyageId_returnsContainers() throws Exception {
+    Container container =
+        containerRepository.save(
+            new Container("MSCU1234567", ContainerSize.TWENTY_FOOT, ContainerType.DRY));
+
+    Customer customer =
+        customerRepository.save(new Customer("Acme Corp", "John Doe", "john@acme.com"));
+
+    FreightOrder order = new FreightOrder();
+    order.setVoyage(voyage);
+    order.setContainer(container);
+    order.setCustomer(customer);
+    order.setOrderedBy("ops-team");
+    order.setBasePriceUsd(BigDecimal.valueOf(1000));
+    order.setDiscountPercent(BigDecimal.ZERO);
+    order.setFinalPrice(BigDecimal.valueOf(1000));
+    freightOrderRepository.save(order);
+
+    mockMvc
+        .perform(
+            get("/api/v1/voyages/{voyageId}/containers", voyage.getId())
+                .param("page", "0")
+                .param("size", "20"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content").isArray())
+        .andExpect(jsonPath("$.content.length()").value(1))
+        .andExpect(jsonPath("$.content[0].containerCode").value("MSCU1234567"))
+        .andExpect(jsonPath("$.content[0].containerSize").value("TWENTY_FOOT"))
+        .andExpect(jsonPath("$.content[0].containerType").value("DRY"))
+        .andExpect(jsonPath("$.content[0].orderedBy").value("ops-team"))
+        .andExpect(jsonPath("$.content[0].orderStatus").value("PENDING"));
+  }
+
+  @Test
+  @DisplayName("GET /api/v1/voyages/{voyageId}/containers → 200 OK with empty list")
+  void getContainersByVoyageId_returnsEmptyList() throws Exception {
+    mockMvc
+        .perform(
+            get("/api/v1/voyages/{voyageId}/containers", voyage.getId())
+                .param("page", "0")
+                .param("size", "20"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content").isArray())
+        .andExpect(jsonPath("$.content.length()").value(0))
+        .andExpect(jsonPath("$.totalElements").value(0));
+  }
+
+  @Test
+  @DisplayName("GET /api/v1/voyages/{voyageId}/containers → 404 Not Found")
+  void getContainersByVoyageId_returnsNotFound() throws Exception {
+    mockMvc
+        .perform(
+            get("/api/v1/voyages/{voyageId}/containers", 99999L)
+                .param("page", "0")
+                .param("size", "20"))
         .andExpect(status().isNotFound());
   }
 }
